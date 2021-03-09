@@ -164,6 +164,7 @@
             e.preventDefault();
         }, false);
         dropbox.addEventListener("drop", function(e) {
+            console.log(e);
             e.stopPropagation();
             e.preventDefault();
             var reader = new FileReader();
@@ -172,6 +173,7 @@
         }, false);
 
         function processflv(e) {
+            // console.log(e);
             var buffer = e.target.result;
             var uint8 = new Uint8Array(buffer);
             //将拖拽入的flv视频转成了2进制数组
@@ -264,7 +266,7 @@
 
         function doappendbuff() {
             if (sb&&!sb.updating && temp_arr.length > 0) {
-                console.log('开始添加');
+                console.log('开始添加00');
                 sb.appendBuffer(temp_arr.shift());
             } else {
                 console.log('sourcebuff还在忙碌');

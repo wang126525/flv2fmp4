@@ -2,7 +2,7 @@
 export default class FlvTag {
     constructor() {
         this.tagType = -1;
-        this.dataSize = -1;
+        this.dataSize = -1;//数据 flvParse.read(length)产出
         this.Timestamp = -1;
         this.StreamID = -1;
         this.body = -1;
@@ -18,6 +18,7 @@ export default class FlvTag {
         }
         this.arr.pop();
         const time = this.arr.join('');
+        console.log(time,"time");
         this.time = parseInt(time, 16);
         return parseInt(time, 16);
     }

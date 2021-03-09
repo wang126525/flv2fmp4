@@ -24,8 +24,8 @@ class FlvParse {
         this.tempUint8 = uint8;
         if (this.tempUint8.length > 13 && this.tempUint8[0] == 70 && this.tempUint8[1] == 76 && this.tempUint8[2] == 86) {
             this.probe(this.tempUint8.buffer);
-            this.read(9); // 略掉9个字节的flv header tag
-            this.read(4); // 略掉第一个4字节的 tag size
+            this.read(9); // 略掉9个字节的flv header tag  3+1+1+4
+            this.read(4); // 略掉第一个4字节的 tag size  Head Tag长度
             this.parse();
             this.frist = false;
             return this.offset;
