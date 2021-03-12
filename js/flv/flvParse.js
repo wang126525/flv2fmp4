@@ -77,16 +77,16 @@ class FlvParse {
                 continue;
             }
             if (this.tempUint8.length - this.index >= (this.getBodySum(t.dataSize) + 4)) {
-                t.body = this.read(this.getBodySum(t.dataSize)); // 取出body
-                if (t.tagType == 9 && this._hasVideo) {
+                t.body = this.read(this.getBodySum(t.dataSize)); // 取出body 还需要解析body里面的数据信息
+                if (t.tagType == 9 && this._hasVideo) { //视频标签
                     this.arrTag.push(t);
                 }
-                if (t.tagType == 8 && this._hasAudio) {
+                if (t.tagType == 8 && this._hasAudio) { // 音频标签
                     this.arrTag.push(t);
                 }
-                if (t.tagType == 18 ) {
+                if (t.tagType == 18 ) { // script tag metaData标签
                     if(this.arrTag.length==0)
-                    this.arrTag.push(t);
+                    this.arrTag.push(t);  // metaData标签需要是第一个
                     else{
                         console.log('这是截获的自定义数据',t);
                     }

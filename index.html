@@ -183,6 +183,7 @@
             // flv2mp4.onInitSegment = onInitSegment.bind(_this);
             // flv2mp4.onMediaSegment = onMediaSegment.bind(_this);
         }
+        // 取得解码完后媒体信息后的回调 用来初始化MediaSource
 		function onMediaInfo(a,b){
 			if(mes==null){
 	        		mes=	new MediaSource;
@@ -227,7 +228,7 @@
 		        timer = setTimeout(() => fn.apply(this, args), delay);
 		    }
 		}
-		
+		// 初始化MP4片段
         function mp4Init(a,b) {
         		resultU8t=new Uint8Array(a.length);
         		resultU8t.set(a,0);
@@ -249,6 +250,7 @@
             hrefa.innerHTML='mp4下载';
             document.body.appendChild(hrefa);
 		}
+        // 生成的MP4数据通过此回调传递
         function onMediaSegment(a) {
             console.log('moof', a);
 //          var temp=new Uint8Array(resultU8t.length+a.length);

@@ -111,7 +111,7 @@ class flv2fmp4 {
 
     /**
      * 不要主动调用这个接口!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-     * moof回调
+     * moof回调   返回MP4数据 转发给页面
      *
      * @param {any} track
      * @param {any} value
@@ -175,6 +175,7 @@ class flv2fmp4 {
      */
     metaSucc(mi) {
         if (this.onMediaInfo) {
+            // 此处调用暴露的外部方法为了将媒体信息传出 生成mediaSource对象使用
             this.onMediaInfo(mi||tagdemux._mediaInfo, { hasAudio: this.hasAudio, hasVideo: this.hasVideo });
         }
         // 获取ftyp和moov
@@ -190,7 +191,7 @@ class flv2fmp4 {
             this.loadmetadata = true;
         }
     }
-
+    // 解析后的帧数据的传输函数 传给MP4moof进行MP4封装
     onDataAvailable(audiotrack, videotrack) {
         this.m4mof.remux(audiotrack, videotrack);
     }

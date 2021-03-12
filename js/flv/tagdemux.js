@@ -63,11 +63,11 @@ class tagDemux {
     parseMetadata(arr) {
         const data = flvDemux.parseMetadata(arr);
         this._parseScriptData(data);
-        console.log(this._mediaInfo, this._mediaInfo.isComplete());
+        console.log(this._mediaInfo, this._mediaInfo.isComplete(),"this._mediaInfo");
     }
     _parseScriptData(obj) {
         const scriptData = obj;
-
+        console.log(obj,"scriptData");
         if (scriptData.hasOwnProperty('onMetaData')) {
             if (this._metadata) {
                 console.log(this.TAG, 'Found another onMetaData tag!');
@@ -155,7 +155,7 @@ class tagDemux {
     /**
      * 传入tags输出moof和mdat
      *
-     * @param {any} tags
+     * @param {Array} tags
      *
      * @memberof tagDemux
      */
@@ -187,7 +187,7 @@ class tagDemux {
                 break;
         }
     }
-
+    // 解析videoTag
     _parseVideoData(arrayBuffer, dataOffset, dataSize, tagTimestamp, tagPosition) {
         if (tagTimestamp == this._timestampBase && this._timestampBase != 0) {
             console.log(tagTimestamp, this._timestampBase, '夭寿啦这个视频不是从0开始');
@@ -197,22 +197,22 @@ class tagDemux {
             console.log(this.TAG, 'Flv: Invalid video packet, missing VideoData payload!');
             return;
         }
-        // 获取 video tag body 第一字节
+        // 获取 video tag body 第一字节  视频参数
         const spec = (new Uint8Array(arrayBuffer, dataOffset, dataSize))[0];
-        // 获取是否是关键帧
+        // 获取是否是关键帧      11110000
         const frameType = (spec & 240) >>> 4;
-        // 获取编码格式
+        // 获取编码格式        00001111
         const codecId = spec & 15;
 
-        if (codecId !== 7) {
+        if (codecId !== 7) {   // 只判断了一种 h264数据 AVC
             if(this._onError)
             this._onError(`Flv: Unsupported codec in video frame: ${codecId}`);
             return;
         }
-
+        // 以上是每个videoTag视频参数解析 下面是解析videoTag Data部分 视频数据
         this._parseAVCVideoPacket(arrayBuffer, dataOffset + 1, dataSize - 1, tagTimestamp, tagPosition, frameType);
     }
-
+    // 解析 videoTag Data 视频数据 针对h264 avc数据格式
     _parseAVCVideoPacket(arrayBuffer, dataOffset, dataSize, tagTimestamp, tagPosition, frameType) {
 
         if (dataSize < 4) {
@@ -234,7 +234,7 @@ class tagDemux {
         //  Composition time offset
         // ELSE
         //  0
-        const cts = v.getUint32(0, !le) & 0x00FFFFFF;
+        const cts = v.getUint32(0, !le) & 0x00FFFFFF;  // cts?????
 
         // IF AVCPacketType == 0 AVCDecoderConfigurationRecord（AVC sequence header）
         // IF AVCPacketType == 1 One or more NALUs (Full frames are required)
@@ -246,9 +246,9 @@ class tagDemux {
          *都 需要重新送一遍sps和pps的信息.AVCDecoderConfigurationRecord在FLV文件中一般情况也是出现1次，
          *也就是第一个 video tag.
          */
-        if (packetType === 0) { // AVCDecoderConfigurationRecord
+        if (packetType === 0) { // AVCDecoderConfigurationRecord 视频的帧信息编码信息等  只出现一次
             this._parseAVCDecoderConfigurationRecord(arrayBuffer, dataOffset + 4, dataSize - 4);
-        } else if (packetType === 1) { // One or more Nalus
+        } else if (packetType === 1) { // One or more Nalus  视频的帧数据
             this._parseAVCVideoData(arrayBuffer, dataOffset + 4, dataSize - 4, tagTimestamp, tagPosition, frameType, cts);
         } else if (packetType === 2) {
             // empty, AVC end of sequence
@@ -423,7 +423,7 @@ class tagDemux {
     }
 
     /**
-     * 普通的AVC 片段
+     * 普通的AVC 片段 解析视频帧数据
      */
     _parseAVCVideoData(arrayBuffer, dataOffset, dataSize, tagTimestamp, tagPosition, frameType, cts) {
 
@@ -436,7 +436,7 @@ class tagDemux {
         let offset = 0;
         const lengthSize = this._naluLengthSize;
         const dts = this._timestampBase + tagTimestamp;
-        let keyframe = (frameType === 1); // from FLV Frame Type constants
+        let keyframe = (frameType === 1); // from FLV Frame Type constants  关键帧
 
         while (offset < dataSize) {
             if (offset + 4 >= dataSize) {
@@ -480,10 +480,12 @@ class tagDemux {
             if (keyframe) {
                 avcSample.fileposition = tagPosition;
             }
+            // 放入视频帧数据
             track.samples.push(avcSample);
             track.length += length;
         }
     }
+    // 解析音频tag
     _parseAudioData(arrayBuffer, dataOffset, dataSize, tagTimestamp) {
         if (tagTimestamp == this._timestampBase && this._timestampBase != 0) {
             console.log(tagTimestamp, this._timestampBase, '夭寿啦这个视频不是从0开始');
@@ -509,17 +511,17 @@ class tagDemux {
             const le = this._littleEndian;
             const v = new DataView(arrayBuffer, dataOffset, dataSize);
 
-            const soundSpec = v.getUint8(0);
+            const soundSpec = v.getUint8(0); //10100000
 
-            const soundFormat = soundSpec >>> 4;
-            if (soundFormat !== 10) { // AAC
+            const soundFormat = soundSpec >>> 4; // 00001010  10 音频编码格式
+            if (soundFormat !== 10) { // 不是AAC
                 // TODO: support MP3 audio codec
                 this._onError(DemuxErrors.CODEC_UNSUPPORTED, 'Flv: Unsupported audio codec idx: ' + soundFormat);
                 return;
             }
 
-            let soundRate = 0;
-            const soundRateIndex = (soundSpec & 12) >>> 2;
+            let soundRate = 0; //音频频率
+            const soundRateIndex = (soundSpec & 12) >>> 2;  // 取出二进制中的音频频率
 
             const soundRateTable = [5500, 11025, 22050, 44100, 48000];
 
@@ -530,8 +532,8 @@ class tagDemux {
                 return;
             }
 
-            const soundSize = (soundSpec & 2) >>> 1; // unused
-            const soundType = (soundSpec & 1);
+            const soundSize = (soundSpec & 2) >>> 1; // 音频数据大小 snd8bit snd16bit
+            const soundType = (soundSpec & 1); // 音频类型 sndmono sndstereo
 
             meta.audioSampleRate = soundRate;
             meta.channelCount = (soundType === 0 ? 1 : 2);
@@ -539,7 +541,7 @@ class tagDemux {
             meta.codec = 'mp4a.40.5';
         }
 
-        const aacData = this._parseAACAudioData(arrayBuffer, dataOffset + 1, dataSize - 1);
+        const aacData = this._parseAACAudioData(arrayBuffer, dataOffset + 1, dataSize - 1); // 返回解析后的音频数据
         if (aacData == undefined) {
             return;
         }
@@ -548,7 +550,7 @@ class tagDemux {
             if (meta.config) {
                 console.log(this.TAG, 'Found another AudioSpecificConfig!');
             }
-            const misc = aacData.data;
+            const misc = aacData.data;  //音频帧数据
             meta.audioSampleRate = misc.samplingRate;
             meta.channelCount = misc.channelCount;
             meta.codec = misc.codec;
@@ -600,14 +602,14 @@ class tagDemux {
             return;
         }
 
-        const result = {};
+        const result = {};  // 音频数据 {AACPacketType: ,Data: }
         const array = new Uint8Array(arrayBuffer, dataOffset, dataSize);
 
-        result.packetType = array[0];
+        result.packetType = array[0];// 一个字节 AACPacketType 0 AAC sequence header 1AAC raw
 
-        if (array[0] === 0) {
+        if (array[0] === 0) {// 解析AAC数据头 
             result.data = this._parseAACAudioSpecificConfig(arrayBuffer, dataOffset + 1, dataSize - 1);
-        } else {
+        } else { // 音频帧数据
             result.data = array.subarray(1);
         }
 
@@ -650,7 +652,7 @@ class tagDemux {
 
         const samplingFrequence = mpegSamplingRates[samplingIndex];
 
-        // 4 bits
+        // 4 bits                        01111000
         const channelConfig = (array[1] & 0x78) >>> 3;
         if (channelConfig < 0 || channelConfig >= 8) {
             this._onError(DemuxErrors.FORMAT_ERROR, 'Flv: AAC invalid channel configuration');
